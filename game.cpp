@@ -7,21 +7,31 @@ int random(int min, int max) {
     return rand()%(max-min+1) + min;
 }
 
+int abs(int num){
+    return num<0? num*-1 : num;
+}
+
+int cityBlockDistance(int x1, int y1, int x2, int y2) {
+    return abs(x1 - x2) + abs(y1 - y2);
+}
+
 struct Node{
 
     char item;  //p for player, b=bomb, k=key, c=coin, g=gate, .=nothing
-
+    int row, col;
     Node *up;
     Node *down;
     Node *left;
     Node *right;
 
-    Node(){
+    Node(int Row, int Col){
         item = '.';
         up = nullptr;
         down = nullptr;
         left = nullptr;
         right = nullptr;
+        row = Row;
+        col = Col;
     }
 };
 
@@ -29,6 +39,7 @@ struct Grid{
     Node *head;
     Node *player;
     Node *key;
+    Node *gate;
 
     void placeItems(int size){
         int playerI, playerJ,keyI, keyJ,gateI, gateJ,bomb1I, bomb1J, bomb2I, bomb2J;
@@ -57,6 +68,7 @@ struct Grid{
 
         Node *gateNode  =getNode(gateI, gateJ);
         gateNode->item = 'g';
+        gate = gateNode;
 
 
         do{
@@ -89,7 +101,7 @@ struct Grid{
         for(int i =  0; i <size; i++){
 
             for(int j = 0; j<size; j++){
-                Node *newNode = new Node();
+                Node *newNode = new Node(i, j);
                 if(!curr){ //for the very first node
                     head = newNode; 
                     currRowHead = head;
@@ -241,15 +253,15 @@ struct Grid{
     }
 
     int getKeyDistance(){ //distnace from player to key
-        int distance = 0;
+        return cityBlockDistance(player->row, player->col, key->row, key->col);
+    }
 
-        return distance;
+    int getGateDistance(){
+        return cityBlockDistance(player->row, player->col, gate->row, gate->col);
     }
 
     int getTotalDistance(){ //distance from player to key to gate
-        int distance = getKeyDistance();
-
-        return distance;
+        return getKeyDistance() + cityBlockDistance(key->row, key->col, gate->row, gate->col);
     }
 
 
@@ -266,6 +278,7 @@ class Game{
     bool keyFound;
     int movesLeft;
     int distanceToKey;
+    int distanceToGate;
     int previousDistance;
     int score;
     int undosLeft;
@@ -326,6 +339,7 @@ class Game{
 
         previousDistance = 0;
         distanceToKey = grid.getKeyDistance();
+        distanceToGate = 0;
         hint = "Closer";
         keyFound = false;
 
@@ -353,12 +367,39 @@ class Game{
 
     }
 
+    void updateHint(){
+        if(keyFound){
+            previousDistance = distanceToGate;
+            distanceToGate = grid.getGateDistance();
+            if(distanceToGate<previousDistance){
+                hint = "Closer";
+            }
+            else{
+                hint = "Getting further";
+            }
+        }
+        else{
+            previousDistance = distanceToKey;
+            distanceToKey = grid.getKeyDistance();
+            if(distanceToKey<previousDistance){
+                hint = "Closer";
+            }
+            else{
+                hint = "Getting further";
+            }
+        }
+
+
+    }
+
     bool movePlayer(int input){ //returns true if game ends
 
         if(movesLeft <= 0){
             displayYouLose();
             return true; //end the game
         }
+
+        updateHint();
         
         char itemAtNewPosition = '.';
         
@@ -393,6 +434,7 @@ class Game{
             //check what item was on the new position
             case 'k'://key
                 keyFound = true;
+                updateHint();
                 break;
             case 'c'://coin
                 score += 2;

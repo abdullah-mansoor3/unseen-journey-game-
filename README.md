@@ -1,15 +1,12 @@
-Version 2
+Version 2.1
 
 Changes:
--added comments 
--moved the player in the grid-added conditions for when the player steps on a bomb, key, gate etc
--changes difficulty level when player enters the gate
--added winning condition
--changed the menu to update when the variables update
--bug fix infinite recursion in Grid::resize
+-row and col data members to Node struct
+-added pointer to gate in Grid struct
+-added hint feature
 
 Future changes:
-- Write Grid::getTotalDistance Grid::getKeyDistance
+-fix display issue
 -implement undoing moves
 -implement random coin and bomb drops
 -reveal the coordinates and order of coins, keys, bombs when player exits the door or loses
