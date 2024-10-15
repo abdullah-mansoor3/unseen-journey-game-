@@ -1,13 +1,11 @@
-Version 2.1
+Version 2.2 (Segmentation Fault)
 
 Changes:
--row and col data members to Node struct
--added pointer to gate in Grid struct
--added hint feature
+-added bombs nearby and coins nearby feature (its not working doe)
+-fixed display issue
+-added random next items feature (segmentation fault)
 
 Future changes:
--fix display issue
--implement undoing moves
--implement random coin and bomb drops
 -reveal the coordinates and order of coins, keys, bombs when player exits the door or loses
+-implement undoing moves
 -display the initial state of the game when lose

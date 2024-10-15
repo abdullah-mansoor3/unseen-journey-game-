@@ -15,16 +15,16 @@ int cityBlockDistance(int x1, int y1, int x2, int y2) {
     return abs(x1 - x2) + abs(y1 - y2);
 }
 
-struct Node{
+struct GridNode{
 
     char item;  //p for player, b=bomb, k=key, c=coin, g=gate, .=nothing
     int row, col;
-    Node *up;
-    Node *down;
-    Node *left;
-    Node *right;
+    GridNode *up;
+    GridNode *down;
+    GridNode *left;
+    GridNode *right;
 
-    Node(int Row, int Col){
+    GridNode(int Row, int Col){
         item = '.';
         up = nullptr;
         down = nullptr;
@@ -36,17 +36,18 @@ struct Node{
 };
 
 struct Grid{
-    Node *head;
-    Node *player;
-    Node *key;
-    Node *gate;
+    GridNode *head;
+    GridNode *player;
+    GridNode *key;
+    GridNode *gate;
+    int size;
 
-    void placeItems(int size){
+    void placeItems(){
         int playerI, playerJ,keyI, keyJ,gateI, gateJ,bomb1I, bomb1J, bomb2I, bomb2J;
         
         playerI =size - 1;
         playerJ =size/2;  //place the player in the middle of bottom row
-        Node *playerNode = getNode(playerI, playerJ);
+        GridNode *playerNode = getNode(playerI, playerJ);
         player = playerNode;
         player->item = 'p';
 
@@ -57,7 +58,7 @@ struct Grid{
             keyJ = random(0, size-1);
         }while(keyI==playerI && keyJ==playerJ);
 
-        Node *keyNode = getNode(keyI, keyJ);
+        GridNode *keyNode = getNode(keyI, keyJ);
         keyNode->item = 'k';
         key = keyNode;
 
@@ -66,7 +67,7 @@ struct Grid{
             gateJ = random(0, size-1);
         }while((gateI==playerI && gateJ==playerJ) ||(gateI==keyI && gateJ==keyJ));
 
-        Node *gateNode  =getNode(gateI, gateJ);
+        GridNode *gateNode  =getNode(gateI, gateJ);
         gateNode->item = 'g';
         gate = gateNode;
 
@@ -76,7 +77,7 @@ struct Grid{
             bomb1J = random(0, size-1);
         }while((bomb1I==playerI && bomb1J==playerJ) ||(bomb1I==keyI && bomb1J==keyJ) || (bomb1I==gateI && bomb1J==gateJ));
 
-        Node *bomb1Node  =getNode(bomb1I, bomb1J);
+        GridNode *bomb1Node  =getNode(bomb1I, bomb1J);
         bomb1Node->item = 'b';
 
         do{
@@ -84,7 +85,7 @@ struct Grid{
             bomb2J = random(0, size-1);
         }while((bomb2I==playerI && bomb2J==playerJ) ||(bomb2I==keyI && bomb2J==keyJ) || (bomb2I==gateI && bomb2J==gateJ) || (bomb2I==bomb1I && bomb2J==bomb1J));
 
-        Node *bomb2Node  =getNode(bomb2I, bomb2J);
+        GridNode *bomb2Node  =getNode(bomb2I, bomb2J);
         bomb2Node->item = 'b';
 
 
@@ -92,16 +93,16 @@ struct Grid{
 
     }
 
-    void init(int size){
+    void init(){
 
-        Node *currRowHead = nullptr;
-        Node *curr = nullptr;
-        Node *nodeAbove = nullptr;
+        GridNode *currRowHead = nullptr;
+        GridNode *curr = nullptr;
+        GridNode *nodeAbove = nullptr;
 
         for(int i =  0; i <size; i++){
 
             for(int j = 0; j<size; j++){
-                Node *newNode = new Node(i, j);
+                GridNode *newNode = new GridNode(i, j);
                 if(!curr){ //for the very first node
                     head = newNode; 
                     currRowHead = head;
@@ -131,17 +132,17 @@ struct Grid{
 
         }
 
-        placeItems(size); //place key, gate, player etc
+        placeItems(); //place key, gate, player etc
     }
 
     void deallocate(){
-        Node *row = head;
+        GridNode *row = head;
 
         while(row){
-            Node *curr  = row;
+            GridNode *curr  = row;
             row = row->down;
             while(curr){
-                Node *deleted = curr;
+                GridNode *deleted = curr;
                 curr = curr->right;
                 delete deleted;
             }
@@ -151,8 +152,16 @@ struct Grid{
     Grid(int size){
         head = nullptr;
         player = nullptr;
+        this->size = size;
+        init();
+    }
 
-        init(size);
+    Grid(){
+        size = 0;
+        head = nullptr;
+        player = nullptr;
+        key = nullptr;
+        gate = nullptr;
     }
 
     ~Grid(){
@@ -161,12 +170,13 @@ struct Grid{
 
     void resize(int size){
         deallocate();  
-        init(size); //initialize the grid with the new size
+        this->size = size;
+        init(); //initialize the grid with the new size
     }
 
-    Node *getNode(int i, int j){
+    GridNode *getNode(int i, int j){
 
-        Node *currRowHead =  head;
+        GridNode *currRowHead =  head;
 
         for(int I = 0; I<=i ; I++){ //loop through each row
 
@@ -174,7 +184,7 @@ struct Grid{
 
             if(I==i){ //only iterate the row if its the row of the required node
 
-                Node *curr = currRowHead;
+                GridNode *curr = currRowHead;
 
                 for(int J=0 ; J<j; J++){
                     if(curr){
@@ -264,26 +274,256 @@ struct Grid{
         return getKeyDistance() + cityBlockDistance(key->row, key->col, gate->row, gate->col);
     }
 
+    void operator = (Grid g){
+        deallocate();
+        head = g.head;
+    }
+
 
 
 };
 
+struct QueueNode{
+    int x,y;
+    char item;
+
+    QueueNode *previous;
+    QueueNode *next;
+
+    QueueNode(){
+        
+        x = -1;
+        y = -1;
+
+        if(random(0,3) == 0){
+            item = 'b';
+        }
+        else{
+            item = 'c';
+        }
+
+        previous = nullptr;
+        next = nullptr;
+
+    }
+};
+
+class ItemQueue{
+    QueueNode *head, *tail;
+
+    int playerX, playerY, keyX, keyY, doorX, doorY; //these are the values to avoid when setting the coordinates
+    int gridSize;
+
+    bool coordinatesOccupied(int row, int col) {
+        if ((row == playerX && col == playerY) ||(row == keyX && col == keyY) || (row == doorX && col == doorY)) {
+            return true;
+        }
+
+        // Check if it overlaps with any item in the grid queue
+        QueueNode *current = head;
+        while (current) {
+            if (current->x == row && current->y == col) {
+                return true;
+            }
+            current = current->next;
+        }
+
+        return false;
+    }
+
+    public:
+    
+
+    ItemQueue(){
+        init();
+    }
+
+    ~ItemQueue(){
+        deallocate();
+    }
+
+    void init(int PlayerX = -1,int PlayerY = -1,int DoorX = -1,int DoorY = -1,int KeyX = -1,int KeyY = -1, int GridSize = 0){
+        head = nullptr;
+        tail = nullptr;
+        playerX = PlayerX;
+        playerY = PlayerY;
+        keyX = KeyX;
+        keyY = KeyY;
+        doorX = DoorX;
+        doorY = DoorY;
+        gridSize = GridSize;
+    }
+
+    void deallocate(){
+        while(head){
+            delete dequeue();
+        }
+    }
+
+    //this enqueue is called for the nextItemsQueue
+    void enqueue(){
+        QueueNode *newNode = new QueueNode;
+
+        if(tail){
+            tail->next = newNode;
+            newNode->previous = tail;
+            tail = newNode;
+            return;
+        }
+
+        head = newNode;
+        tail = head;
+    }
+
+    //this is called for the gridItemsQueue and the dequeued node from the nextItemsQueue is passed as an argument
+    void enqueue(QueueNode *Node){
+        if(!Node){
+            return;
+        }
+
+        if(!head){
+            head = Node;
+            tail = Node;
+            return;
+        }
+
+        //when head is not nullptr
+
+        int row = 0;
+        int col  = 0;
+
+        //keep generating random coordinates until we get a coordinate where the index is not occupied
+        do{
+            row = random(0, gridSize);
+            col = random(0, gridSize);
+        }while( coordinatesOccupied(row, col) );
+
+        Node->x = row;
+        Node->y = col;
+    }
+
+    QueueNode *dequeue(){ //dont forget to deallocate the returned node
+        if(!head){
+            return nullptr;
+        }
+
+        QueueNode *dequeued = head;
+        head = head -> next;
+        if(head){
+            head->previous = nullptr;
+        }
+        else{
+            tail = nullptr;
+        }
+        return dequeued;
+    }
+
+    string getItemsInQueue(){
+        string s = "[ ";
+        QueueNode *curr = head;
+        while(head){
+            s = s + curr->item + " ,";
+        }
+        s += " ]";
+        return s;
+    }
+
+};
+
 class Game{
+
     Grid grid;
     int size;
-    int playerX, playerY;
-    int keyX, keyY;
-    int doorX, doorY;
 
     bool keyFound;
+
     int movesLeft;
+    int undosLeft;
+
     int distanceToKey;
     int distanceToGate;
     int previousDistance;
+
     int score;
-    int undosLeft;
+
+    int bombsNearby;
+    int coinsNearby;
+
     string mode; 
     string hint;
+
+    time_t startTime; //for measuring the time to drop bombs and coins
+    time_t currentTime; 
+
+    ItemQueue itemsInGrid;
+    ItemQueue nextItems;
+
+    void placeItemInGrid(int col, int row, char item){
+        GridNode *Node = grid.getNode(row, col);
+
+        if(Node && Node->item == '.'){ //if the node is not a nullptr and the index is not occupied
+            Node->item = item;
+        }
+    }
+
+    void initializeItemQueues(){
+        GridNode *player = grid.player;
+        GridNode *gate = grid.gate;
+        GridNode *key = grid.key;
+
+        itemsInGrid.deallocate();
+        itemsInGrid.init(player->row, player->col, gate->row, gate->col, key->row, key->col, size);
+
+        nextItems.deallocate();
+        nextItems.init();
+
+        //first enter 5 items in the next items queue
+        //they get initialized with random items
+        nextItems.enqueue();
+        nextItems.enqueue();
+        nextItems.enqueue();
+        nextItems.enqueue();
+        nextItems.enqueue();
+
+        //then dequeue one node at a time and enqueue it in the grid queue
+        //this way they get placed in the grid
+        QueueNode *nodeToBeAddedToGrid = nextItems.dequeue();
+        itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        nodeToBeAddedToGrid = nextItems.dequeue();
+        itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        nodeToBeAddedToGrid = nextItems.dequeue();
+        itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        nodeToBeAddedToGrid = nextItems.dequeue();
+        itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        nodeToBeAddedToGrid = nextItems.dequeue();
+        itemsInGrid.enqueue(nodeToBeAddedToGrid);
+
+        //i added node first in the next items queue bcz thats when the nodes are created
+        //when enqueuing to the grid queue, we take the dequeued node from the next items queue and enqueue it. no new node is created
+
+        //then add 5 items again to fill up the next items queue
+        nextItems.enqueue();
+        nextItems.enqueue();
+        nextItems.enqueue();
+        nextItems.enqueue();
+        nextItems.enqueue();
+
+    }
+
+    void updateItems(){
+
+        //remove the items whose time is up i.e the item added first
+        QueueNode *dequeued = itemsInGrid.dequeue();
+        if(dequeued)
+            delete dequeued;
+
+        //dequeue an item from the next items queue and add it to the grid
+        itemsInGrid.enqueue(nextItems.dequeue());
+
+        //add an item to the next items queue to fill up the space
+        nextItems.enqueue();
+        
+    }
 
     void revealOrderOfCollection(){
 
@@ -309,6 +549,106 @@ class Game{
             printw("You Lose. You stepped on a bomb :-( ");
         printw((to_string(score).c_str()));
         revealOrderOfCollection();
+    }
+
+    void calculateNearbyItems(){
+        bombsNearby = 0;
+        coinsNearby = 0;
+
+        //calculate the number of bombs and coins nearby
+        GridNode *player = grid.player;
+
+        //calculate bombs
+
+        //up
+        if(player->up){
+            if( player->up->item == 'b' ){
+                bombsNearby += 1;
+            }
+            else if(player->up->item == 'c'){
+                coinsNearby += 1;
+            }
+        }
+
+        //down
+        if(player->down){
+            if( player->down->item == 'b' ){
+                bombsNearby += 1;
+            }
+            else if(player->down->item == 'c'){
+                coinsNearby += 1;
+            }
+        }
+
+        //left
+        if(player->left){
+            if( player->left->item == 'b' ){
+                bombsNearby += 1;
+            }
+            else if(player->left->item == 'c'){
+                coinsNearby += 1;
+            }
+        }
+
+        //right
+        if(player->right){
+            if( player->right->item == 'b' ){
+                bombsNearby += 1;
+            }
+            else if(player->right->item == 'c'){
+                coinsNearby += 1;
+            }
+        }
+
+        //top left
+        if(player->up){
+            if(player->up->left){
+                if( player->up->left->item == 'b' ){
+                    bombsNearby += 1;
+                }
+                else if(player->up->left->item == 'c'){
+                    coinsNearby += 1;
+                }
+            }
+        }
+
+        //top right
+        if(player->up){
+            if(player->up->left){
+                if( player->up->right->item == 'b' ){
+                    bombsNearby += 1;
+                }
+                else if(player->up->right->item == 'c'){
+                    coinsNearby += 1;
+                }
+            }
+        }
+
+        //bottom left
+        
+        if(player->up){
+            if(player->up->left){
+                if( player->down->left->item == 'b' ){
+                    bombsNearby += 1;
+                }
+                else if(player->down->left->item == 'c'){
+                    coinsNearby += 1;
+                }
+            }
+        }
+
+        //bottom right
+        
+        if(player->up){
+            if(player->up->left){
+                if( player->down->right->item == 'b' ){
+                    bombsNearby += 1;
+                }
+                else if(player->down->right->item == 'c'){
+                    coinsNearby += 1;
+                }
+            }
+        }
     }
 
     void changeMode(){
@@ -340,10 +680,16 @@ class Game{
         previousDistance = 0;
         distanceToKey = grid.getKeyDistance();
         distanceToGate = 0;
-        hint = "Closer";
+        bombsNearby = 0;
+        coinsNearby = 0;
+        hint = "Getting closer ";
         keyFound = false;
 
         movesLeft += grid.getTotalDistance(); //add the distance from the player to the key to the gate
+
+        startTime = time(nullptr); //get the starting time 
+
+        initializeItemQueues();
     }
 
     void nextLevel(){ //for moving to the next level
@@ -372,7 +718,7 @@ class Game{
             previousDistance = distanceToGate;
             distanceToGate = grid.getGateDistance();
             if(distanceToGate<previousDistance){
-                hint = "Closer";
+                hint = "Getting closer ";
             }
             else{
                 hint = "Getting further";
@@ -382,7 +728,7 @@ class Game{
             previousDistance = distanceToKey;
             distanceToKey = grid.getKeyDistance();
             if(distanceToKey<previousDistance){
-                hint = "Closer";
+                hint = "Getting closer ";
             }
             else{
                 hint = "Getting further";
@@ -428,6 +774,8 @@ class Game{
             case KEY_RIGHT:
                 itemAtNewPosition = grid.moveRight();
                 break;
+
+            
         }
 
         switch(itemAtNewPosition){
@@ -448,9 +796,12 @@ class Game{
                 break;
         };
 
+        calculateNearbyItems();
+
         return false;
 
     }
+
 
     public:
     Game(): mode("Easy"), grid(10), size(10), keyFound(false){
@@ -459,7 +810,9 @@ class Game{
         previousDistance = 0;
         distanceToKey = 0;
         movesLeft = 0;
-        hint = "Closer";
+        hint = "Getting closer ";
+        bombsNearby = 0;
+        coinsNearby = 0;
 
         changeMode();
         
@@ -479,6 +832,12 @@ class Game{
                 return movePlayer(input);
         }
 
+        currentTime = time(nullptr);
+        if(difftime(startTime, currentTime)>=30.0){
+            updateItems();
+            startTime = time(nullptr);
+        }
+
         return false;
 
 
@@ -486,30 +845,32 @@ class Game{
 
     void printGrid(){
 
-
+        string itemsInLine = nextItems.getItemsInQueue();
         //menu on the top
-        mvprintw(0, 0, ("Mode :  "  + mode + "\n").c_str());  //convert to c style string bcz mvprintw works like that
-        mvprintw(1, 0, ("Remaining Moves: " + to_string(movesLeft) + "       \t     Remaining Undos: " + to_string(undosLeft) + "\n").c_str());
-        mvprintw(2, 0, ("Score : " + to_string(score) + "\t\tKey Status: " + to_string(keyFound) + " \n").c_str());
-        mvprintw(3, 0, ("Hint : " + hint + "\n").c_str());
-        mvprintw(4, 0, "k = key\tb = bomb\tg = gate\tc = coin\n");
+        mvprintw(0, 0, ("Mode :  "  + mode + "\tRemaining Moves: " + to_string(movesLeft) + "\tRemaining Undos: " + to_string(undosLeft)).c_str());  //convert to c style string bcz mvprintw works like that
+        mvprintw(1, 0, ("Score : " + to_string(score) + "\tKey Status: " + to_string(keyFound) + "\tHint : " + hint).c_str());
+        mvprintw(2, 0, "k = key\tb = bomb\tg = gate\tc = coin");
+        mvprintw(3, 0, ("Bombs nearby: " + to_string(bombsNearby) + "\tCoins nearby: " + to_string(coinsNearby)).c_str());
+        mvprintw(4, 0, ("Space for messages like you found key, you picked a coin, you cant enter gate without key, you cant move back wihtout undoing, max undos reached"));
+        mvprintw(5, 0, ("Next drop: " + itemsInLine).c_str());
+        mvprintw(5, 0, "Arrow keys or wasd to move.\tq or ESC to quit\tu to undo");
 
 
         //grid
         for(int i = 0; i <= size*2 + 1; i++) //top wall
             mvprintw(LINES-size-2, i,"%c", '#');
 
-        Node *row = grid.head;
+        GridNode *row = grid.head;
 
         for(int i = 0 ; i<size;i++){ //grid
             mvprintw(LINES-size+i -1, 0, "#"); //left wall
             
-            Node *curr =row;
+            GridNode *curr =row;
 
             for(int j=0; j<size;j++){ //the center grid area
                 if(curr){
                     char ch = curr->item;
-                    ch = ch=='k' || ch=='c' || ch=='b'? '.' : ch;  //if the item is the key, coin or bomb then hide it
+                    ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
                     mvprintw(LINES - size + i-1, (j+1)*2, "%c", ch);
                     curr = curr->right;
                 }
