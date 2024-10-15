@@ -356,7 +356,11 @@ class ItemQueue{
 
     void deallocate(){
         while(head){
-            delete dequeue();
+            QueueNode *dequeued = dequeue();
+            if(dequeued)
+                delete dequeued;
+            else
+                return;
         }
     }
 
@@ -380,13 +384,6 @@ class ItemQueue{
         if(!Node){
             return;
         }
-
-        if(!head){
-            head = Node;
-            tail = Node;
-            return;
-        }
-
         //when head is not nullptr
 
         int row = 0;
@@ -400,6 +397,16 @@ class ItemQueue{
 
         Node->x = row;
         Node->y = col;
+
+        if(!head){
+            head = Node;
+            tail = Node;
+            return;
+        }
+
+        tail->next = Node;
+        Node->previous = nullptr;
+        tail = Node;
     }
 
     QueueNode *dequeue(){ //dont forget to deallocate the returned node
@@ -415,14 +422,19 @@ class ItemQueue{
         else{
             tail = nullptr;
         }
+        if (dequeued){
+            dequeued->next = nullptr; 
+            dequeued->previous = nullptr; 
+        }
         return dequeued;
     }
 
     string getItemsInQueue(){
         string s = "[ ";
         QueueNode *curr = head;
-        while(head){
+        while(curr){
             s = s + curr->item + " ,";
+            curr = curr->next;
         }
         s += " ]";
         return s;
