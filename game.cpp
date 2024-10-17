@@ -72,25 +72,6 @@ struct Grid{
         gate = gateNode;
 
 
-        do{
-            bomb1I = random(0, size-1);
-            bomb1J = random(0, size-1);
-        }while((bomb1I==playerI && bomb1J==playerJ) ||(bomb1I==keyI && bomb1J==keyJ) || (bomb1I==gateI && bomb1J==gateJ));
-
-        GridNode *bomb1Node  =getNode(bomb1I, bomb1J);
-        bomb1Node->item = 'b';
-
-        do{
-            bomb2I = random(0, size-1);
-            bomb2J = random(0, size-1);
-        }while((bomb2I==playerI && bomb2J==playerJ) ||(bomb2I==keyI && bomb2J==keyJ) || (bomb2I==gateI && bomb2J==gateJ) || (bomb2I==bomb1I && bomb2J==bomb1J));
-
-        GridNode *bomb2Node  =getNode(bomb2I, bomb2J);
-        bomb2Node->item = 'b';
-
-
-
-
     }
 
     void init(){
@@ -174,7 +155,7 @@ struct Grid{
         init(); //initialize the grid with the new size
     }
 
-    GridNode *getNode(int i, int j){
+    GridNode *getNode(int i, int j) const{
 
         GridNode *currRowHead =  head;
 
@@ -262,21 +243,24 @@ struct Grid{
         return '0';
     }
 
-    int getKeyDistance(){ //distnace from player to key
+    int getKeyDistance() const{ //distnace from player to key
         return cityBlockDistance(player->row, player->col, key->row, key->col);
     }
 
-    int getGateDistance(){
+    int getGateDistance() const{
         return cityBlockDistance(player->row, player->col, gate->row, gate->col);
     }
 
-    int getTotalDistance(){ //distance from player to key to gate
+    int getTotalDistance() const{ //distance from player to key to gate
         return getKeyDistance() + cityBlockDistance(key->row, key->col, gate->row, gate->col);
     }
 
-    void operator = (Grid g){
+    void operator = (const Grid &g){
         deallocate();
-        head = g.head;
+        size = g.size;
+
+
+
     }
 
 
@@ -295,7 +279,7 @@ struct QueueNode{
         x = -1;
         y = -1;
 
-        if(random(0,3) == 0){
+        if(rand() % 4 == 0){ //1 out of 4 chance
             item = 'b';
         }
         else{
@@ -314,7 +298,7 @@ class ItemQueue{
     int playerX, playerY, keyX, keyY, doorX, doorY; //these are the values to avoid when setting the coordinates
     int gridSize;
 
-    bool coordinatesOccupied(int row, int col) {
+    bool coordinatesOccupied(int row, int col) const{
         if ((row == playerX && col == playerY) ||(row == keyX && col == keyY) || (row == doorX && col == doorY)) {
             return true;
         }
@@ -429,7 +413,7 @@ class ItemQueue{
         return dequeued;
     }
 
-    string getItemsInQueue(){
+    string getItemsInQueue() const{
         string s = "[ ";
         QueueNode *curr = head;
         while(curr){
@@ -442,9 +426,70 @@ class ItemQueue{
 
 };
 
+struct CoordinateNode{
+    int x, y;
+    char item;
+
+    CoordinateNode *next;
+
+    CoordinateNode(int X, int Y, char Item){
+        next = nullptr;
+        x = X;
+        y = Y;
+        item = Item;
+    }
+};
+
+class CoordinateQueue{
+    CoordinateNode *head;
+    CoordinateNode *tail;
+
+    public:
+    CoordinateQueue(){
+        head = nullptr;
+        tail = nullptr;
+    }
+
+    ~CoordinateQueue(){
+        CoordinateNode *curr = head;
+        while(curr){
+            CoordinateNode *next = curr->next;
+            delete curr;
+            curr = next;
+        }
+    }
+
+    void enqueue(int x, int y, char item){
+        CoordinateNode *newNode = new CoordinateNode(x, y, item);
+        if(!head){
+            head = newNode;
+            tail = newNode;
+            return;
+        }
+
+        tail->next = newNode;
+        tail = newNode;
+    }
+
+    string getOrderOfPickingUp() const{
+        string s = "[ ";
+
+        CoordinateNode *curr = head;
+        while(curr){
+            s += "( " + to_string(curr->x) + " , " + to_string(curr->y) + " , " + curr->item + " ) , ";
+            curr = curr->next;
+        }
+
+        s += " ]";
+
+        return s;
+    }
+};
+
 class Game{
 
     Grid grid;
+    Grid initialState;
     int size;
 
     bool keyFound;
@@ -470,7 +515,11 @@ class Game{
     ItemQueue itemsInGrid;
     ItemQueue nextItems;
 
-    void placeItemInGrid(int col, int row, char item){
+    string message;
+
+    CoordinateQueue itemsPickedInOrder;
+
+    void placeItemInGrid(int row, int col, char item){
         GridNode *Node = grid.getNode(row, col);
 
         if(Node && Node->item == '.'){ //if the node is not a nullptr and the index is not occupied
@@ -501,14 +550,23 @@ class Game{
         //this way they get placed in the grid
         QueueNode *nodeToBeAddedToGrid = nextItems.dequeue();
         itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        placeItemInGrid(nodeToBeAddedToGrid->x, nodeToBeAddedToGrid->y, nodeToBeAddedToGrid->item);
+
         nodeToBeAddedToGrid = nextItems.dequeue();
         itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        placeItemInGrid(nodeToBeAddedToGrid->x, nodeToBeAddedToGrid->y, nodeToBeAddedToGrid->item);
+
         nodeToBeAddedToGrid = nextItems.dequeue();
         itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        placeItemInGrid(nodeToBeAddedToGrid->x, nodeToBeAddedToGrid->y, nodeToBeAddedToGrid->item);
+
         nodeToBeAddedToGrid = nextItems.dequeue();
         itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        placeItemInGrid(nodeToBeAddedToGrid->x, nodeToBeAddedToGrid->y, nodeToBeAddedToGrid->item);
+
         nodeToBeAddedToGrid = nextItems.dequeue();
         itemsInGrid.enqueue(nodeToBeAddedToGrid);
+        placeItemInGrid(nodeToBeAddedToGrid->x, nodeToBeAddedToGrid->y, nodeToBeAddedToGrid->item);
 
         //i added node first in the next items queue bcz thats when the nodes are created
         //when enqueuing to the grid queue, we take the dequeued node from the next items queue and enqueue it. no new node is created
@@ -537,8 +595,16 @@ class Game{
         
     }
 
-    void revealOrderOfCollection(){
+    void displayInitialState(){
 
+    }
+
+    void revealOrderOfCollection(){
+        clear();
+        printw("order of picking up items: ");
+        printw((itemsPickedInOrder.getOrderOfPickingUp()).c_str());
+
+        displayInitialState();
 
         getch(); //wait for user input to display the next screen
     }
@@ -549,6 +615,7 @@ class Game{
         printw("You Won yayyyyyy :-) ");
         printw("Your total Score: ");
         printw((to_string(score).c_str()));
+        getch();
         revealOrderOfCollection();
     }
 
@@ -560,6 +627,7 @@ class Game{
         else
             printw("You Lose. You stepped on a bomb :-( ");
         printw((to_string(score).c_str()));
+        getch();
         revealOrderOfCollection();
     }
 
@@ -652,7 +720,7 @@ class Game{
         //bottom right
         
         if(player->down){
-            if(player->down->left){
+            if(player->down->right){
                 if( player->down->right->item == 'b' ){
                     bombsNearby += 1;
                 }
@@ -694,8 +762,9 @@ class Game{
         distanceToGate = 0;
         bombsNearby = 0;
         coinsNearby = 0;
-        hint = "Getting closer ";
+        hint = "";
         keyFound = false;
+        message = "";
 
         movesLeft += grid.getTotalDistance(); //add the distance from the player to the key to the gate
 
@@ -721,6 +790,9 @@ class Game{
             changeMode();
 
             revealOrderOfCollection();
+        }
+        else{
+            message = "You can't enter the gate without key :(";
         }
 
     }
@@ -809,18 +881,24 @@ class Game{
         switch(itemAtNewPosition){
             //check what item was on the new position
             case 'k'://key
+                message = "You Found the Key! Now Look For the Door";
                 keyFound = true;
                 updateHint();
+                itemsPickedInOrder.enqueue((grid.player)->row,(grid.player)->col, 'k' );
                 break;
             case 'c'://coin
+                message = "You picked up a coin!";
                 score += 2;
                 undosLeft += 1;
+                itemsPickedInOrder.enqueue((grid.player)->row,(grid.player)->col, 'c' );
                 break;
             case 'b'://bomb
                 displayYouLose();
+                itemsPickedInOrder.enqueue((grid.player)->row,(grid.player)->col, 'b' );
                 return true; //end the game
             case 'g'://gate
                 nextLevel();
+                itemsPickedInOrder.enqueue((grid.player)->row,(grid.player)->col, 'g' );
                 break;
         };
 
@@ -832,7 +910,7 @@ class Game{
 
 
     public:
-    Game(): mode("Easy"), grid(10), size(10), keyFound(false){
+    Game(): mode("Easy"), grid(10), size(10), keyFound(true){
         score = 0;
         undosLeft = 0;
         previousDistance = 0;
@@ -841,6 +919,7 @@ class Game{
         hint = "Getting closer ";
         bombsNearby = 0;
         coinsNearby = 0;
+        message = "";
 
         changeMode();
         
@@ -879,8 +958,8 @@ class Game{
         mvprintw(1, 0, ("Score : " + to_string(score) + "\tKey Status: " + to_string(keyFound) + "\tHint : " + hint).c_str());
         mvprintw(2, 0, "k = key\tb = bomb\tg = gate\tc = coin");
         mvprintw(3, 0, ("Bombs nearby: " + to_string(bombsNearby) + "\tCoins nearby: " + to_string(coinsNearby)).c_str());
-        mvprintw(4, 0, ("Space for messages like you found key, you picked a coin, you cant enter gate without key, you cant move back wihtout undoing, max undos reached"));
-        mvprintw(5, 0, ("Next drop: " + itemsInLine).c_str());
+        mvprintw(6, 0, message.c_str());
+        mvprintw(4, 0, ("Next drop: " + itemsInLine).c_str());
         mvprintw(5, 0, "Arrow keys or wasd to move.\tq or ESC to quit\tu to undo");
 
 
@@ -898,7 +977,7 @@ class Game{
             for(int j=0; j<size;j++){ //the center grid area
                 if(curr){
                     char ch = curr->item;
-                    ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
+                    // ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
                     mvprintw(LINES - size + i-1, (j+1)*2, "%c", ch);
                     curr = curr->right;
                 }
