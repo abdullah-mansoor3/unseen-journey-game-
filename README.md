@@ -1,8 +1,4 @@
-Version 2.21 (Segmentation Fault)
-
-Issues:
--segmentation fault when i go into the bottom wall
-maybe because of edge cases or because of a collision with an item
+Version 2.22
 
 Changes:
 -bug fixes

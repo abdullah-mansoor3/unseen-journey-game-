@@ -214,7 +214,7 @@ struct Grid{
             return item;
         }
 
-        return '.';
+        return '0'; //means that the player didnt move
 
 
     }
@@ -230,7 +230,7 @@ struct Grid{
             return item;
         }
 
-        return '.' ;
+        return '0' ;
     }
 
     char moveUp(){
@@ -245,7 +245,7 @@ struct Grid{
 
         }
 
-        return '.';
+        return '0';
     }
 
     char moveDown(){
@@ -259,7 +259,7 @@ struct Grid{
             return item;
         }
 
-        return '.';
+        return '0';
     }
 
     int getKeyDistance(){ //distnace from player to key
@@ -626,7 +626,7 @@ class Game{
 
         //top right
         if(player->up){
-            if(player->up->left){
+            if(player->up->right){
                 if( player->up->right->item == 'b' ){
                     bombsNearby += 1;
                 }
@@ -638,8 +638,8 @@ class Game{
 
         //bottom left
         
-        if(player->up){
-            if(player->up->left){
+        if(player->down){
+            if(player->down->left){
                 if( player->down->left->item == 'b' ){
                     bombsNearby += 1;
                 }
@@ -651,8 +651,8 @@ class Game{
 
         //bottom right
         
-        if(player->up){
-            if(player->up->left){
+        if(player->down){
+            if(player->down->left){
                 if( player->down->right->item == 'b' ){
                     bombsNearby += 1;
                 }
@@ -767,24 +767,40 @@ class Game{
             case 'W':
             case KEY_UP:
                 itemAtNewPosition = grid.moveUp();
+
+                if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    movesLeft--;
+                }
                 break;
 
             case 's':
             case 'S':
             case KEY_DOWN:
                 itemAtNewPosition = grid.moveDown();
+
+                if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    movesLeft--;
+                }
                 break;
 
             case 'a':
             case 'A':
             case KEY_LEFT:
                 itemAtNewPosition = grid.moveLeft();
+
+                if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    movesLeft--;
+                }
                 break;
 
             case 'd':
             case 'D':
             case KEY_RIGHT:
                 itemAtNewPosition = grid.moveRight();
+
+                if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    movesLeft--;
+                }
                 break;
 
             
