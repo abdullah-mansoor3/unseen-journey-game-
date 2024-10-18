@@ -522,6 +522,13 @@ class Game{
 
     bool gameWon;
 
+    void fixGate(){        //when the player enters the gate without the key, it disappears
+        //this function fixes it
+        if(grid.gate->item=='.'){
+            grid.gate->item = 'g';
+        }
+    }
+
     void placeItemInGrid(int row, int col, char item){
         GridNode *Node = grid.getNode(row, col);
 
@@ -906,6 +913,9 @@ class Game{
                 break;
         };
 
+        //when the player enters the gate without the key, it disappears
+        //this function fixes it
+        fixGate();
         calculateNearbyItems();
 
         return false;
