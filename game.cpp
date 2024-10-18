@@ -487,6 +487,64 @@ class CoordinateQueue{
     }
 };
 
+struct StackNode{
+    char move;
+    StackNode *next;
+
+    StackNode(char Move){
+        move = Move;
+        next = nullptr;
+    }
+};
+
+class MoveStack{
+    StackNode *head;
+    public:
+    MoveStack(){
+        head = nullptr;
+    }
+
+    ~MoveStack(){
+        deallocate();
+    }
+
+    void push(char move){
+        StackNode *newNode = new StackNode(move);
+        if(!head){
+            head = newNode;
+            return;
+        }
+
+        newNode->next = head;
+        head  = newNode;
+
+    }
+
+    char pop(){
+        if(!head){
+            return ' ';
+        }
+
+        StackNode *deleted = head;
+        head = head->next;
+        char move = deleted->move;
+        delete deleted;
+
+        return move;
+    }
+
+    bool isEmpty(){
+        return head == nullptr;
+    }
+
+    void deallocate(){
+        while(!isEmpty()){
+            pop();
+        }
+    }
+};
+
+
 class Game{
 
     Grid grid;
@@ -521,6 +579,8 @@ class Game{
     CoordinateQueue itemsPickedInOrder;
 
     bool gameWon;
+
+    MoveStack moves;
 
     void fixGate(){        //when the player enters the gate without the key, it disappears
         //this function fixes it
@@ -781,6 +841,8 @@ class Game{
 
         startTime = time(nullptr); //get the starting time 
 
+        moves.deallocate();
+
         initializeItemQueues();
     }
 
@@ -852,6 +914,7 @@ class Game{
                 itemAtNewPosition = grid.moveUp();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    moves.push('u');
                     movesLeft--;
                 }
                 break;
@@ -862,6 +925,7 @@ class Game{
                 itemAtNewPosition = grid.moveDown();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    moves.push('d');
                     movesLeft--;
                 }
                 break;
@@ -872,6 +936,7 @@ class Game{
                 itemAtNewPosition = grid.moveLeft();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    moves.push('l');
                     movesLeft--;
                 }
                 break;
@@ -882,6 +947,7 @@ class Game{
                 itemAtNewPosition = grid.moveRight();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
+                    moves.push('r');
                     movesLeft--;
                 }
                 break;
@@ -922,6 +988,36 @@ class Game{
 
     }
 
+    void undoMove(){
+        if(undosLeft>0){
+            if(!moves.isEmpty()){
+                undosLeft--;
+                char move = moves.pop();
+
+                switch(move){
+                    case 'l': //if last move was left then move the player right
+                        grid.moveRight();
+                        break;
+                    case 'r': //if last move was right then move the player left
+                        grid.moveLeft();
+                        break;
+                    case 'u': //if last move was up then move the player down
+                        grid.moveDown();
+                        break;
+                    case 'd': //if last move was down then move the player up
+                        grid.moveUp();
+                        break;
+                }
+            }
+            else{
+                message = "Cannot undo with no moves made";
+            }
+        }
+        else{
+            message = "You've Run out of undos";
+        }
+    }
+
 
     public:
     Game(): mode("Easy"), grid(10), size(10), keyFound(true){
@@ -953,10 +1049,14 @@ class Game{
             case 27: //esc key
                 return true; //quit the game
                 break;
+            case 'u':
+            case 'U':
+                undoMove();
+                break;
             default:
                 return movePlayer(input);
         }
-        if(difftime(time(nullptr), startTime)>30){ //if time passed since last drop is more than 30 seconds
+        if(time(nullptr)-startTime>30){ //if time passed since last drop is more than 30 seconds
             updateItems();
             startTime = time(nullptr);
         }
@@ -975,7 +1075,8 @@ class Game{
         mvprintw(2, 0, "k = key\tb = bomb\tg = gate\tc = coin");
         mvprintw(3, 0, ("Bombs nearby: " + to_string(bombsNearby) + "\tCoins nearby: " + to_string(coinsNearby)).c_str());
         mvprintw(4, 0, ("Next drop: " + itemsInLine).c_str());
-        // mvprintw(5, 0, ("Time left for next drop: "+to_string(time(nullptr)).c_str()));
+        mvprintw(5, 0, ("Time left for next drop: "+ to_string(30+startTime-time(nullptr)) + " s").c_str());
+        // mvprintw(5, 0, ("Time left for next drop: "+ to_string(time(nullptr)-startTime) + " s").c_str());
         mvprintw(6, 0, message.c_str());
 
         //grid
