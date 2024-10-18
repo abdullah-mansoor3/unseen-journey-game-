@@ -4,6 +4,7 @@
 using namespace std;
 
 int random(int min, int max) {
+    srand(time(0));
     return rand()%(max-min+1) + min;
 }
 
@@ -519,6 +520,8 @@ class Game{
 
     CoordinateQueue itemsPickedInOrder;
 
+    bool gameWon;
+
     void placeItemInGrid(int row, int col, char item){
         GridNode *Node = grid.getNode(row, col);
 
@@ -610,6 +613,7 @@ class Game{
     }
 
     void displayYouWin(){
+        gameWon = true;
         score += undosLeft;
         clear();
         printw("You Won yayyyyyy :-) ");
@@ -912,6 +916,7 @@ class Game{
     public:
     Game(): mode("Easy"), grid(10), size(10), keyFound(true){
         score = 0;
+        gameWon = false;
         undosLeft = 0;
         previousDistance = 0;
         distanceToKey = 0;
@@ -926,6 +931,9 @@ class Game{
     }
 
     bool getInput(){ //returns true if game ends
+        if(gameWon){
+            return true;
+        }
         int input = getch();
 
         switch(input){
@@ -938,9 +946,7 @@ class Game{
             default:
                 return movePlayer(input);
         }
-
-        currentTime = time(nullptr);
-        if(difftime(startTime, currentTime)>=30.0){
+        if(difftime(time(nullptr), startTime)>30){ //if time passed since last drop is more than 30 seconds
             updateItems();
             startTime = time(nullptr);
         }
@@ -958,10 +964,9 @@ class Game{
         mvprintw(1, 0, ("Score : " + to_string(score) + "\tKey Status: " + to_string(keyFound) + "\tHint : " + hint).c_str());
         mvprintw(2, 0, "k = key\tb = bomb\tg = gate\tc = coin");
         mvprintw(3, 0, ("Bombs nearby: " + to_string(bombsNearby) + "\tCoins nearby: " + to_string(coinsNearby)).c_str());
-        mvprintw(6, 0, message.c_str());
         mvprintw(4, 0, ("Next drop: " + itemsInLine).c_str());
-        mvprintw(5, 0, "Arrow keys or wasd to move.\tq or ESC to quit\tu to undo");
-
+        // mvprintw(5, 0, ("Time left for next drop: "+to_string(time(nullptr)).c_str()));
+        mvprintw(6, 0, message.c_str());
 
         //grid
         for(int i = 0; i <= size*2 + 1; i++) //top wall
