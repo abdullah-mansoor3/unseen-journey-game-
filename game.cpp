@@ -698,8 +698,7 @@ class Game{
     }
 
     void displayInitialState(){
-        mvprintw(0, 0, "Initial State: ");
-        mvprintw(1, 0, "Press any key to exit");
+        mvprintw(0, 0, "Press any key to exit");
         //grid
         for(int i = 0; i <= size*2 + 1; i++) //top wall
             mvprintw(LINES-size-2, i,"%c", '#');
@@ -729,8 +728,8 @@ class Game{
     }
 
     void revealOrderOfCollection(){
-        mvprintw(0, 0, "order of picking up items: ");
-        mvprintw(1, 0, (itemsPickedInOrder.getOrderOfPickingUp()).c_str());
+        mvprintw(1, 0, "order of picking up items: ");
+        mvprintw(2, 0, (itemsPickedInOrder.getOrderOfPickingUp()).c_str());
 
         displayInitialState();
         refresh();
@@ -742,9 +741,9 @@ class Game{
         gameWon = true;
         score += undosLeft;
         clear();
-        printw("You Won yayyyyyy :-) ");
-        printw("Your total Score: ");
-        printw((to_string(score).c_str()));
+        mvprintw(3,0, "You Won yayyyyyy :-) ");
+        mvprintw(4,0, "Your total Score: ");
+        mvprintw(5,0, (to_string(score).c_str()));
         revealOrderOfCollection();
     }
 
@@ -752,10 +751,10 @@ class Game{
         score += undosLeft;
         clear();
         if(movesLeft<=0)
-            printw("You Lose. You used up all of your moves :-(");
+            mvprintw(3, 0, "You Lose. You used up all of your moves :-(");
         else
-            printw("You Lose. You stepped on a bomb :-( ");
-        printw((to_string(score).c_str()));
+            mvprintw(3, 0, "You Lose. You stepped on a bomb :-( ");
+        mvprintw(4, 0, ("Score: " + to_string(score)).c_str());
         revealOrderOfCollection();
     }
 
@@ -1165,8 +1164,7 @@ class Game{
         mvprintw(3, 0, ("Bombs nearby: " + to_string(bombsNearby) + "\tCoins nearby: " + to_string(coinsNearby)).c_str());
         mvprintw(4, 0, ("Next drop: " + itemsInLine).c_str());
         mvprintw(5, 0, ("Time left for next drop: "+ to_string(30+startTime-time(nullptr)) + " s  ").c_str());
-        mvprintw(6, 0, (message + "                                                                                                             ").c_str());
-        mvprintw(7, 0, (to_string(grid.key->row)+to_string(grid.key->col)).c_str());
+        mvprintw(6, 0, (message + "                                                                                                             ").c_str()); //spaces are there to not make the new text overlap with the previous one
         //grid
         for(int i = 0; i <= size*2 + 1; i++) //top wall
             mvprintw(LINES-size-2, i,"%c", '#');
