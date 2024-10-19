@@ -1,11 +1,12 @@
-Version 3.1
+Version 3.2
 
 Changes:
--Bug fixes
--added undo feature
+-display initial state
+-bug fixes
+-improved undo feature
 
-ISSUES:
--drops not changing after a certain time
 
 Future changes:
--display the initial state of the game when lose (add the = operator in the grid class)
+-clean up display
+-think therews more bugs in the queue and stack classes
+-test the whole code

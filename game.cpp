@@ -259,12 +259,35 @@ struct Grid{
     void operator = (const Grid &g){
         deallocate();
         size = g.size;
+        init();
 
+        //now copy the items
 
+        GridNode *currRowHead = g.head;
+        GridNode *thisGridRowHead = head;
+
+        while (currRowHead && thisGridRowHead) {
+            GridNode *curr = currRowHead;
+            GridNode *thisCurr = thisGridRowHead;
+
+            while (curr && thisCurr) {
+                thisCurr->item = curr->item;  // Copy item
+                curr = curr->right;
+                thisCurr = thisCurr->right;
+            }
+
+            currRowHead = currRowHead->down;
+            thisGridRowHead = thisGridRowHead->down;
+        }
+
+        player = getNode(g.player->row, g.player->col);
+        player->item = 'p';
+        key = getNode(g.key->row, g.key->col);
+        key->item = 'k';
+        gate = getNode(g.gate->row, g.gate->col);
+        gate->item = 'g';
 
     }
-
-
 
 };
 
@@ -352,16 +375,15 @@ class ItemQueue{
     //this enqueue is called for the nextItemsQueue
     void enqueue(){
         QueueNode *newNode = new QueueNode;
-
-        if(tail){
-            tail->next = newNode;
-            newNode->previous = tail;
-            tail = newNode;
+        if(!head){
+            head = newNode;
+            tail = head;
             return;
         }
 
-        head = newNode;
-        tail = head;
+        tail->next = newNode;
+        newNode->previous = tail;
+        tail = newNode;
     }
 
     //this is called for the gridItemsQueue and the dequeued node from the nextItemsQueue is passed as an argument
@@ -542,8 +564,16 @@ class MoveStack{
             pop();
         }
     }
-};
 
+    char peak(){
+        if(head){
+            return head->move;
+        }
+        else{
+            return ' ';
+        }
+    }
+};
 
 class Game{
 
@@ -569,7 +599,6 @@ class Game{
     string hint;
 
     time_t startTime; //for measuring the time to drop bombs and coins
-    time_t currentTime; 
 
     ItemQueue itemsInGrid;
     ItemQueue nextItems;
@@ -654,11 +683,14 @@ class Game{
 
         //remove the items whose time is up i.e the item added first
         QueueNode *dequeued = itemsInGrid.dequeue();
-        if(dequeued)
+        if(dequeued){
+            placeItemInGrid(dequeued->x, dequeued->y, '.'); //place a . in place of the removed item
             delete dequeued;
-
+        }
+        QueueNode* itemToBeAdded = nextItems.dequeue();
         //dequeue an item from the next items queue and add it to the grid
-        itemsInGrid.enqueue(nextItems.dequeue());
+        itemsInGrid.enqueue(itemToBeAdded);
+        placeItemInGrid(itemToBeAdded->x,itemToBeAdded->y, itemToBeAdded->item );
 
         //add an item to the next items queue to fill up the space
         nextItems.enqueue();
@@ -666,15 +698,42 @@ class Game{
     }
 
     void displayInitialState(){
+        mvprintw(0, 0, "Initial State: ");
+        mvprintw(1, 0, "Press any key to exit");
+        //grid
+        for(int i = 0; i <= size*2 + 1; i++) //top wall
+            mvprintw(LINES-size-2, i,"%c", '#');
 
+        GridNode *row = initialState.head;
+
+        for(int i = 0 ; i<size;i++){ //grid
+            mvprintw(LINES-size+i -1, 0, "#"); //left wall
+            
+            GridNode *curr =row;
+
+            for(int j=0; j<size;j++){ //the center grid area
+                if(curr){
+                    char ch = curr->item;
+                    // ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
+                    mvprintw(LINES - size + i-1, (j+1)*2, "%c", ch);
+                    curr = curr->right;
+                }
+            }
+            mvprintw(LINES-size+i-1, size*2+1,"%c", '#'); //right wall
+            if(row)
+                row = row->down;
+        }
+
+        for(int i = 0; i <= size*2 + 1; i++) //bottom wall
+            mvprintw(LINES-1, i,"%c", '#');
     }
 
     void revealOrderOfCollection(){
-        clear();
-        printw("order of picking up items: ");
-        printw((itemsPickedInOrder.getOrderOfPickingUp()).c_str());
+        mvprintw(0, 0, "order of picking up items: ");
+        mvprintw(1, 0, (itemsPickedInOrder.getOrderOfPickingUp()).c_str());
 
         displayInitialState();
+        refresh();
 
         getch(); //wait for user input to display the next screen
     }
@@ -686,7 +745,6 @@ class Game{
         printw("You Won yayyyyyy :-) ");
         printw("Your total Score: ");
         printw((to_string(score).c_str()));
-        getch();
         revealOrderOfCollection();
     }
 
@@ -698,7 +756,6 @@ class Game{
         else
             printw("You Lose. You stepped on a bomb :-( ");
         printw((to_string(score).c_str()));
-        getch();
         revealOrderOfCollection();
     }
 
@@ -844,6 +901,8 @@ class Game{
         moves.deallocate();
 
         initializeItemQueues();
+
+        initialState = grid;
     }
 
     void nextLevel(){ //for moving to the next level
@@ -861,7 +920,7 @@ class Game{
             }
 
             changeMode();
-
+            clear();
             revealOrderOfCollection();
         }
         else{
@@ -905,12 +964,19 @@ class Game{
         updateHint();
         
         char itemAtNewPosition = '.';
+        char lastMoveMade = moves.peak();
         
         switch(input){
 
             case 'w':
             case 'W':
             case KEY_UP:
+
+                if(lastMoveMade=='d'){
+                    message = "You can't move to previous position without undoing";
+                    break;                
+                }
+
                 itemAtNewPosition = grid.moveUp();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
@@ -922,6 +988,12 @@ class Game{
             case 's':
             case 'S':
             case KEY_DOWN:
+
+                if(lastMoveMade=='u'){
+                    message = "You can't move to previous position without undoing";
+                    break;                
+                }
+
                 itemAtNewPosition = grid.moveDown();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
@@ -933,6 +1005,12 @@ class Game{
             case 'a':
             case 'A':
             case KEY_LEFT:
+
+                if(lastMoveMade=='r'){
+                    message = "You can't move to previous position without undoing";
+                    break;                
+                }
+
                 itemAtNewPosition = grid.moveLeft();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
@@ -944,6 +1022,12 @@ class Game{
             case 'd':
             case 'D':
             case KEY_RIGHT:
+
+                if(lastMoveMade=='l'){
+                    message = "You can't move to previous position without undoing";
+                    break;                
+                }
+
                 itemAtNewPosition = grid.moveRight();
 
                 if(itemAtNewPosition!='0'){ //0 means the player didnt move
@@ -1032,6 +1116,8 @@ class Game{
         coinsNearby = 0;
         message = "";
 
+        startTime = time(nullptr);
+
         changeMode();
         
     }
@@ -1040,6 +1126,13 @@ class Game{
         if(gameWon){
             return true;
         }
+
+        time_t currentTime = time(nullptr);
+        if(30+startTime-currentTime<=0){ //if time passed since last drop is more than 30 seconds
+            updateItems();
+            startTime = currentTime;
+        }
+
         int input = getch();
 
         switch(input){
@@ -1056,10 +1149,6 @@ class Game{
             default:
                 return movePlayer(input);
         }
-        if(time(nullptr)-startTime>30){ //if time passed since last drop is more than 30 seconds
-            updateItems();
-            startTime = time(nullptr);
-        }
 
         return false;
 
@@ -1075,10 +1164,9 @@ class Game{
         mvprintw(2, 0, "k = key\tb = bomb\tg = gate\tc = coin");
         mvprintw(3, 0, ("Bombs nearby: " + to_string(bombsNearby) + "\tCoins nearby: " + to_string(coinsNearby)).c_str());
         mvprintw(4, 0, ("Next drop: " + itemsInLine).c_str());
-        mvprintw(5, 0, ("Time left for next drop: "+ to_string(30+startTime-time(nullptr)) + " s").c_str());
-        // mvprintw(5, 0, ("Time left for next drop: "+ to_string(time(nullptr)-startTime) + " s").c_str());
-        mvprintw(6, 0, message.c_str());
-
+        mvprintw(5, 0, ("Time left for next drop: "+ to_string(30+startTime-time(nullptr)) + " s  ").c_str());
+        mvprintw(6, 0, (message + "                                                                                                             ").c_str());
+        mvprintw(7, 0, (to_string(grid.key->row)+to_string(grid.key->col)).c_str());
         //grid
         for(int i = 0; i <= size*2 + 1; i++) //top wall
             mvprintw(LINES-size-2, i,"%c", '#');
@@ -1107,8 +1195,7 @@ class Game{
             mvprintw(LINES-1, i,"%c", '#');
 
         refresh();
-        
-    }    
+    }     
 
 };
 
@@ -1129,8 +1216,6 @@ int main(){
         g.printGrid();
         refresh();
     }
-
-    getch(); //wait for user input before exiting
 	endwin();
     
     return 0;
