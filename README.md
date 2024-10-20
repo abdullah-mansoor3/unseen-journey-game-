@@ -1,76 +1,87 @@
-Version 4 Semi-Final (hopefully)
+# Version 4.1 Final (Hopefully)
 
-Changes:
--fixed display
+## Running the Game:
+To run the game, execute the following commands in your Linux terminal within the working directory:
 
-Note:
--Test the code thoroughly for final version
-
-Running the game:
-To run the games run the following commands on your linux terminal in the working directory:
-g++ -o gmae game.cpp -lncurses
+```bash
+g++ -o game game.cpp -lncurses
 ./game
-you must have lncurses installed on your system
+```
 
-Playing the Game:
-The game is not case sensitive i.e inputting w is the same as W
+You must have lncurses installed on your system.
 
-Controls:
-To move up: w, up arrow key
-To move down: w, up  key
-To move left: w, up arrow key
-To move right: w, up arrow key
-to quit: esc or q
-to undo move: u
+## Playing the Game:
+The game is not case sensitive, i.e., inputting w is the same as W.\
 
-rules:
- The player is blind
-and can only sense their surroundings within the maze.The player must navigate through the maze, find
-a hidden key, and unlock the exit door, both of which are randomly placed. However,
-the player cannot see the key or the door; instead, they can sense whether they are
-getting closer or further from the key using a sensing ability.  Movement will be restricted by an ”undo”
-feature that allows limited backtracking. A player can gather coins, which are visible,
-and the difficulty will scale across three levels.
+### Controls:
+- Move up: `w`, up arrow key
+- Move down: `s`, down arrow key
+- Move left: `a`, left arrow key
+- Move right: `d`, right arrow key
+- Quit: `ESC` or `q`
+- Undo move: `u`
 
-implementation:
-classes:
-Grid: stores the state of the game in the grid
-Game: controls the input of player and modifies the game state
-ItemQueue: stores the items placed in the grid as well as the next items to spawn. for this two instances of this class are implemented in the game class. After every 30 seconds an item is removed from the grid and an item is added to the grid at a random coordinate from the nextItems queue and another item is enqueued to the nextItems
-coordinateQueue: stores the coordinates and name of items picked in order which are displayed at the end
-MoveStack: stores the last moves of the player. when u is pressed the player goes back to the last position if possible
+## Rules:
+- The player is blind and can only sense their surroundings within the maze.
+- The goal is to navigate through the maze, find a hidden key, and unlock the exit door, both randomly placed.
+- The player cannot see the key or door but can sense whether they're getting closer or further from the key.
+- There is an \"undo\" feature that allows limited backtracking.
+- The player can gather visible coins, and the game scales across three difficulty levels.
 
-features:
-menu: displays necessary information about the game state
-add menu.png
+## Implementation:
 
-sensing ability:
-the player cannot see the key or the gate and can only sense wheater they are getting closer to the gate or key
+### Classes:
+- **Grid**: Stores the state of the game in the grid.
+- **Game**: Controls player input and modifies the game state.
+- **ItemQueue**: Manages items placed in the grid and the next items to spawn. Two instances of this class are used in `Game`. Every 30 seconds, an item is removed from the grid and a new one is added at a random coordinate from the `nextItems` queue. Another item is enqueued to `nextItems`.
+- **CoordinateQueue**: Stores the coordinates and names of picked items, displayed at the end of the game.
+- **MoveStack**: Stores the player's last moves. When `u` is pressed, the player moves back to the last position (if possible).
 
-bombs:the player cannot see the bombs but can sense how many bombs are near them. the probability of a bomb being placed next is 0.25
+## Features:
 
-coins: the coins are visible but still the player can sense how many coins are near them. the probability of a coins being placed next is 0.75
+### Menu:
+Displays necessary information about the game state.
 
-levels:the game has 3 levels
-easy: 
+![Menu](menu.png)
 
-insert easy.png
+### Sensing Ability:
+The player cannot see the key or gate but can sense whether they're getting closer to the key or gate.
+I've improved this sensing ability by adding the exact direction of the gate and key when they're one block away
+Furthermore the player can sense the number of bombs nearby to avoid them 
 
-medium
+### Undoing moves:
+The player can't go back to the previous position but can go back using the undo feature. Each difficulty level has different undo moves
 
-insert medium.png
+### Bombs:
+Bombs are hidden but can be sensed. The probability of a bomb spawning is 25%.
 
-hard
+### Coins:
+Coins are visible but can also be sensed. The probability of a coin spawning is 75%.
 
-insert hard.png
+### Score:
+- Each unused move equals 1 point
+- each coin collected equals 2 points and 1 additional undo move
 
-Game ending conditions:
+### Levels:
+The game has three levels:
 
-When u step on a bomb or you run out of moves the game is over
+- **Easy**
 
-gameOver.png
+![Easy](easy.png)
 
-When u pass all the levels, you win the game
+- **Medium**
 
-gameWon.png
+![Medium](medium.png)
 
+- **Hard**
+
+![Hard](hard.png)
+
+## Game Ending Conditions:
+- **Game Over**: If you step on a bomb or run out of moves.
+
+![game Over](gameOver.png)
+
+- **Game Won**: If you pass all the levels.
+
+![game Won](gameWon.png)

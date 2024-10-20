@@ -295,7 +295,6 @@ struct QueueNode{
     int x,y;
     char item;
 
-    QueueNode *previous;
     QueueNode *next;
 
     QueueNode(){
@@ -309,8 +308,6 @@ struct QueueNode{
         else{
             item = 'c';
         }
-
-        previous = nullptr;
         next = nullptr;
 
     }
@@ -382,7 +379,6 @@ class ItemQueue{
         }
 
         tail->next = newNode;
-        newNode->previous = tail;
         tail = newNode;
     }
 
@@ -391,15 +387,14 @@ class ItemQueue{
         if(!Node){
             return;
         }
-        //when head is not nullptr
 
         int row = 0;
         int col  = 0;
 
         //keep generating random coordinates until we get a coordinate where the index is not occupied
         do{
-            row = random(0, gridSize);
-            col = random(0, gridSize);
+            row = random(0, gridSize-1);
+            col = random(0, gridSize-1);
         }while( coordinatesOccupied(row, col) );
 
         Node->x = row;
@@ -412,7 +407,6 @@ class ItemQueue{
         }
 
         tail->next = Node;
-        Node->previous = nullptr;
         tail = Node;
     }
 
@@ -423,15 +417,11 @@ class ItemQueue{
 
         QueueNode *dequeued = head;
         head = head -> next;
-        if(head){
-            head->previous = nullptr;
-        }
-        else{
+        if(!head){
             tail = nullptr;
         }
         if (dequeued){
-            dequeued->next = nullptr; 
-            dequeued->previous = nullptr; 
+            dequeued->next = nullptr; //detach the node from the queue
         }
         return dequeued;
     }
@@ -608,6 +598,7 @@ class Game{
     CoordinateQueue itemsPickedInOrder;
 
     bool gameWon;
+    bool gameLost;
 
     MoveStack moves;
 
@@ -713,7 +704,8 @@ class Game{
             for(int j=0; j<size;j++){ //the center grid area
                 if(curr){
                     char ch = curr->item;
-                    // ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
+                    if(!(gameLost || gameWon)) //only display the bombs,gate and key if the game is lost or if the game is won
+                        ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
                     mvprintw(LINES - size + i-1, (j+1)*2, "%c", ch);
                     curr = curr->right;
                 }
@@ -735,6 +727,7 @@ class Game{
         refresh();
 
         getch(); //wait for user input to display the next screen
+        clear();
     }
 
     void displayYouWin(){
@@ -748,6 +741,7 @@ class Game{
     }
 
     void displayYouLose(){
+        gameLost = true;
         score += undosLeft;
         clear();
         if(movesLeft<=0)
@@ -775,6 +769,12 @@ class Game{
             else if(player->up->item == 'c'){
                 coinsNearby += 1;
             }
+            else if(player->up->item == 'k'){
+                message += "\nKey is one block towards north";
+            }
+            else if(player->up->item == 'g'){
+                message += "\nGate is one block towards north";
+            }
         }
 
         //down
@@ -784,6 +784,12 @@ class Game{
             }
             else if(player->down->item == 'c'){
                 coinsNearby += 1;
+            }
+            else if(player->down->item == 'k'){
+                message += "\nKey is one block towards south";
+            }
+            else if(player->down->item == 'g'){
+                message += "\ngate is one block towards south";
             }
         }
 
@@ -795,6 +801,12 @@ class Game{
             else if(player->left->item == 'c'){
                 coinsNearby += 1;
             }
+            else if(player->left->item == 'k'){
+                message += "\nKey is one block towards west";
+            }
+            else if(player->left->item == 'g'){
+                message += "\ngate is one block towards west";
+            }
         }
 
         //right
@@ -804,6 +816,12 @@ class Game{
             }
             else if(player->right->item == 'c'){
                 coinsNearby += 1;
+            }
+            else if(player->right->item == 'k'){
+                message += "\nKey is one block towards east";
+            }
+            else if(player->right->item == 'g'){
+                message += "\ngate is one block towards east";
             }
         }
 
@@ -816,6 +834,12 @@ class Game{
                 else if(player->up->left->item == 'c'){
                     coinsNearby += 1;
                 }
+                else if(player->up->left->item == 'k'){
+                    message += "\nKey is one block towards north west";
+                }
+                else if(player->up->left->item == 'g'){
+                    message += "\ngate is one block towards north west";
+                }
             }
         }
 
@@ -827,6 +851,12 @@ class Game{
                 }
                 else if(player->up->right->item == 'c'){
                     coinsNearby += 1;
+                }
+                else if(player->up->right->item == 'k'){
+                    message += "\nKey is one block towards north east";
+                }
+                else if(player->up->right->item == 'g'){
+                    message += "\ngate is one block towards north east";
                 }
             }
         }
@@ -841,6 +871,12 @@ class Game{
                 else if(player->down->left->item == 'c'){
                     coinsNearby += 1;
                 }
+                else if(player->down->left->item == 'k'){
+                    message += "\nKey is one block towards south west";
+                }
+                else if(player->down->left->item == 'g'){
+                    message += "\ngate is one block towards south west";
+                }
             }
         }
 
@@ -853,6 +889,12 @@ class Game{
                 }
                 else if(player->down->right->item == 'c'){
                     coinsNearby += 1;
+                }
+                else if(player->down->right->item == 'k'){
+                    message += "\nKey is one block towards south east";
+                }
+                else if(player->down->right->item == 'g'){
+                    message += "\ngate is one block towards south east";
                 }
             }
         }
@@ -889,7 +931,7 @@ class Game{
         distanceToGate = 0;
         bombsNearby = 0;
         coinsNearby = 0;
-        hint = "";
+        hint = "Make a valid move to get a hint";
         keyFound = false;
         message = "";
 
@@ -1091,10 +1133,23 @@ class Game{
                         grid.moveUp();
                         break;
                 }
+
+                updateHint();
+
+                if(grid.player->row == grid.gate->row && grid.player->row == grid.gate->row ){
+                    if(keyFound){
+                        nextLevel();
+                        itemsPickedInOrder.enqueue((grid.player)->row,(grid.player)->col, 'g' );
+                    }
+                    else{
+                        message = "You can't enter the gate without the key :(";
+                    }
+                }
             }
             else{
                 message = "Cannot undo with no moves made";
             }
+
         }
         else{
             message = "You've Run out of undos";
@@ -1103,7 +1158,7 @@ class Game{
 
 
     public:
-    Game(): mode("Easy"), grid(10), size(10), keyFound(true){
+    Game(): mode("Easy"), grid(10), size(10), keyFound(true){ //keyFound == true here bcz we want to call changeMode() to initialize the variables
         score = 0;
         gameWon = false;
         undosLeft = 0;
@@ -1114,7 +1169,7 @@ class Game{
         bombsNearby = 0;
         coinsNearby = 0;
         message = "";
-
+        gameLost = false;
         startTime = time(nullptr);
 
         changeMode();
@@ -1179,7 +1234,7 @@ class Game{
             for(int j=0; j<size;j++){ //the center grid area
                 if(curr){
                     char ch = curr->item;
-                    // ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
+                    ch = ch=='g' || ch=='k' || ch=='b'? '.' : ch;  //if the item is the key, gate or bomb then hide it
                     mvprintw(LINES - size + i-1, (j+1)*2, "%c", ch);
                     curr = curr->right;
                 }
